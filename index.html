@@ -11,11 +11,11 @@
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
   <style>
-    /* 💡 全局變數：定義貨架大小與間距 */
+    /* 全局變數：定義貨架大小與間距 */
     :root {
       --cell-w: 110px;
       --cell-h: 80px;
-      --cell-gap: 8px 4px; /* 上下8px，左右4px */
+      --cell-gap: 8px 4px;
     }
 
     /* 基礎設定與手機適應 */
@@ -93,12 +93,12 @@
     .history-table th, .history-table td { border-bottom: 1px solid #eee; padding: 12px 8px; white-space: nowrap; }
     .history-table th { background-color: #f8f9fa; position: sticky; top: 0; color: #555; z-index: 1; }
 
-    /* 💡 【Zebra / 手機專屬優化模式】 */
+    /* Zebra / 手機專屬優化模式 */
     @media (max-width: 768px) {
       :root {
-        --cell-w: 80px;  /* 格子變窄 */
-        --cell-h: 65px;  /* 格子變矮 */
-        --cell-gap: 6px 3px; /* 間隙稍微縮小 */
+        --cell-w: 80px;
+        --cell-h: 65px;
+        --cell-gap: 6px 3px;
       }
       .shelf h2 { font-size: 11px; margin-bottom: 2px; }
       .shelf p { font-size: 10px; }
@@ -126,14 +126,19 @@
         appTitle: "🏢 Smart WMS", loginTitle: "🔐 System Login", loginDesc: "Please enter your registered name/ID",
         loginBtn: "Login", empIdPlaceholder: "e.g., Admin", logout: "Logout", switchLang: "中文",
         navDash: "📊 Dashboard", navIn: "📥 Inbound", navOut: "📤 Outbound", navMap: "🗺️ Live Map", navTurnover: "🔄 Turnover",
-        capTotal: "Total Capacity", capUsed: "Used Space", capEmpty: "Empty Slots", capRate: "Usage Rate",
+        capTotal: "Capacity", capUsed: "Used", capEmpty: "Empty", capRate: "Usage Rate",
         exportBtn: "📥 Export CSV", exportSuccess: "✅ Export successful!",
+        
+        // 儀表板新版字典
+        dashNorth: "North Warehouse", dashSouth: "South Warehouse", dashTurnover: "Turnover Area",
+        dashUsedPct: "Used Space (%)", dashEmptyPct: "Remaining (%)", dashTurnoverItems: "Items in Turnover",
+
         inStep1: "📥 Batch Inbound", inPlaceholder: "Paste barcodes here...",
         addPending: "➕ Add to List", inStep2: "⚙️ Assign Slots", pendingCount: "{n} pending",
         autoAssignTitle: "🤖 Auto Assign:", autoAssignBtn: "Auto Fill Zone", clearList: "🗑️ Clear List", cancelScan: "❌ Cancel",
         manualAssignTitle: "🖐️ Manual Assign:", manualAssignDesc: "Select item below, then tap a flashing empty slot.",
         outStep1: "📤 Batch Outbound (FIFO & Routing)", outPlaceholder: "Paste barcodes to pick...",
-        destLabel: "📍 Pick Destination: ", destCustomer: "🚚 Ship to Customer", destTurnover: "🏭 Transfer to Turnover",
+        destLabel: "📍 Pick Dest: ", destCustomer: "🚚 Customer", destTurnover: "🏭 Turnover",
         outStep2: "🛒 Pick Route ({n} found)", outNotFound: "❌ Not Found ({n})",
         outBtnAll: "Pick All Items", clearNotFound: "Clear List",
         turnoverTitle: "🏭 Turnover Warehouse List", turnoverEmpty: "No items currently in Turnover Warehouse.", 
@@ -147,23 +152,28 @@
         msgOccupied: "⚠️ Slot occupied!", msgFail: "Operation failed!",
         msgSelectFirst: "⚠️ Select an item from the list first!", msgNotFound: "❌ Item not found in warehouse!", 
         scanSuccess: "👉 Ready to store: 【{name}】\nPlease tap a flashing slot!",
-        historyTitle: "📝 Audit Log:", colTime: "Time", colAction: "Action", colBarcode: "Barcode", colOp: "Operator",
+        historyTitle: "📝 Audit Log:", colTime: "Time", colAction: "Action", colBarcode: "Barcode", colOp: "Op",
         actIn: "📥 In", actOut: "📤 Out", actOutCust: "📤 Ship (Cust)", actOutTurn: "🏭 Transfer (Turnover)", noHistory: "No history records found.",
         msgInvalidUser: "❌ Login Failed! Name not found in employee roster or typing error."
       },
       zh: {
-        appTitle: "🏢 總廠智慧 WMS 系統", loginTitle: "🔐 系統登入", loginDesc: "請輸入建檔的員工姓名或編號",
+        appTitle: "🏢 總廠智慧 WMS", loginTitle: "🔐 系統登入", loginDesc: "請輸入建檔的員工姓名或編號",
         loginBtn: "登入系統", empIdPlaceholder: "例如: 王大明", logout: "登出", switchLang: "English",
         navDash: "📊 儀表板", navIn: "📥 批次上架", navOut: "📤 智慧下架", navMap: "🗺️ 即時地圖", navTurnover: "🔄 週轉倉清單",
-        capTotal: "總庫存容量", capUsed: "已使用空間", capEmpty: "剩餘空位", capRate: "總體使用率",
-        exportBtn: "📥 導出庫存資料 (CSV)", exportSuccess: "✅ 資料已成功導出！",
+        capTotal: "總容量", capUsed: "已使用", capEmpty: "剩餘空位", capRate: "總體使用率",
+        exportBtn: "📥 導出 CSV", exportSuccess: "✅ 資料已成功導出！",
+
+        // 儀表板新版字典
+        dashNorth: "北邊倉庫 (North Warehouse)", dashSouth: "南邊倉庫 (South Warehouse)", dashTurnover: "週轉倉區 (Turnover)",
+        dashUsedPct: "使用率 (%)", dashEmptyPct: "剩餘空位 (%)", dashTurnoverItems: "目前暫存件數",
+
         inStep1: "📥 批次輸入進貨清單", inPlaceholder: "請在此貼上多筆產品條碼...",
         addPending: "➕ 加入清單", inStep2: "⚙️ 分配儲位", pendingCount: "剩餘 {n} 件",
         autoAssignTitle: "🤖 自動分配：", autoAssignBtn: "一鍵填滿此區", clearList: "🗑️ 清空清單", cancelScan: "❌ 取消掃描",
         manualAssignTitle: "🖐️ 手動指定：", manualAssignDesc: "點選下方物品，然後點擊地圖空位。",
         outStep1: "📤 輸入揀貨清單 (支援 FIFO)", outPlaceholder: "請貼上多筆要下架的商品條碼...",
-        destLabel: "📍 選擇下架目的地：", destCustomer: "🚚 直接出貨給客戶", destTurnover: "🏭 轉移至 週轉倉 (Turnover)",
-        outStep2: "🛒 最佳路徑規劃 (共 {n} 件)", outNotFound: "❌ 找不到的物品 ({n}件)",
+        destLabel: "📍 目的地：", destCustomer: "🚚 出貨給客戶", destTurnover: "🏭 轉移至週轉倉",
+        outStep2: "🛒 最佳路徑規劃 (共 {n} 件)", outNotFound: "❌ 找不到 ({n}件)",
         outBtnAll: "一鍵完成全部揀貨", clearNotFound: "清除找不到的項目",
         turnoverTitle: "🏭 Turnover Warehouse (無貨架區)", turnoverEmpty: "目前 Turnover Warehouse 內沒有任何庫存。", 
         btnShipTurnover: "🚚 出貨移除", msgTurnoverShip: "確定將此物品從 Turnover Warehouse 出貨並移除嗎？",
@@ -532,7 +542,6 @@
               {zones.map(z => <button key={z} className={`zone-btn ${activeZone === z ? 'active' : ''}`} onClick={() => setActiveZone(z)}>{z} {lang==='zh'?'區':'Zone'}</button>)}
             </div>
 
-            {/* 💡 這裡套用了 CSS 變數 var(--cell-w) 讓它在手機上能自動縮小！ */}
             <div className="warehouse-floor" style={{ display: 'grid', gridTemplateColumns: `repeat(${maxCols}, var(--cell-w))`, gridTemplateRows: `repeat(${maxRows}, var(--cell-h))`, gap: 'var(--cell-gap)' }}>
               {filteredShelves.map(shelf => {
                 const isEmpty = shelf.status === 'empty';
@@ -573,9 +582,20 @@
         );
       };
 
-      const totalShelves = shelves.length;
-      const occupiedShelves = shelves.filter(s => s.status === 'occupied').length;
-      const usageRate = totalShelves === 0 ? 0 : Math.round((occupiedShelves / totalShelves) * 100);
+      // 💡 計算所有各區與週轉倉的獨立數據
+      const northShelves = shelves.filter(s => s.warehouse === 'North Warehouse');
+      const northTotal = northShelves.length;
+      const northUsed = northShelves.filter(s => s.status === 'occupied').length;
+      const northUsedRate = northTotal === 0 ? 0 : Math.round((northUsed / northTotal) * 100);
+      const northEmptyRate = northTotal === 0 ? 0 : 100 - northUsedRate;
+
+      const southShelves = shelves.filter(s => s.warehouse === 'South Warehouse');
+      const southTotal = southShelves.length;
+      const southUsed = southShelves.filter(s => s.status === 'occupied').length;
+      const southUsedRate = southTotal === 0 ? 0 : Math.round((southUsed / southTotal) * 100);
+      const southEmptyRate = southTotal === 0 ? 0 : 100 - southUsedRate;
+
+      const turnoverCount = turnoverItems.length;
 
       return (
         <div>
@@ -650,20 +670,50 @@
             </div>
           )}
 
+          {/* 💡 全新大改版：按區域獨立顯示的儀表板 */}
           {currentView === 'dashboard' && (
             <div className="card">
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px'}}>
                 <h2 style={{margin: 0}}>📈 {t.navDash}</h2>
                 <button className="btn btn-success" onClick={handleExportCSV}>{t.exportBtn}</button>
               </div>
-              <div className="dashboard-grid">
-                <div className="stat-card"><h3>{t.capTotal}</h3><div className="num">{totalShelves}</div></div>
-                <div className="stat-card"><h3>{t.capUsed}</h3><div className="num" style={{color: '#e53935'}}>{occupiedShelves}</div></div>
-                <div className="stat-card"><h3>{t.capEmpty}</h3><div className="num" style={{color: '#4caf50'}}>{totalShelves - occupiedShelves}</div></div>
-                <div className="stat-card"><h3>{t.capRate}</h3><div className="num">{usageRate}%</div>
-                  <div className="bar-bg"><div className="bar-fill" style={{width: `${usageRate}%`, background: usageRate > 80 ? '#e53935' : '#4caf50'}}></div></div>
+
+              {/* 🟦 North Warehouse */}
+              <div style={{marginBottom: '25px'}}>
+                <h3 style={{color: '#0071e3', borderBottom: '2px solid #eee', paddingBottom: '8px', marginTop: 0}}>🟦 {t.dashNorth}</h3>
+                <div className="dashboard-grid">
+                  <div className="stat-card"><h3>{t.capUsed} / {t.capTotal}</h3><div className="num">{northUsed} / {northTotal}</div></div>
+                  <div className="stat-card"><h3>{t.dashUsedPct}</h3><div className="num" style={{color: '#e53935'}}>{northUsedRate}%</div>
+                    <div className="bar-bg"><div className="bar-fill" style={{width: `${northUsedRate}%`, background: northUsedRate > 80 ? '#e53935' : '#ff9800'}}></div></div>
+                  </div>
+                  <div className="stat-card"><h3>{t.dashEmptyPct}</h3><div className="num" style={{color: '#4caf50'}}>{northEmptyRate}%</div>
+                    <div className="bar-bg"><div className="bar-fill" style={{width: `${northEmptyRate}%`, background: '#4caf50'}}></div></div>
+                  </div>
                 </div>
               </div>
+
+              {/* 🟧 South Warehouse */}
+              <div style={{marginBottom: '25px'}}>
+                <h3 style={{color: '#ff9800', borderBottom: '2px solid #eee', paddingBottom: '8px', marginTop: 0}}>🟧 {t.dashSouth}</h3>
+                <div className="dashboard-grid">
+                  <div className="stat-card"><h3>{t.capUsed} / {t.capTotal}</h3><div className="num">{southUsed} / {southTotal}</div></div>
+                  <div className="stat-card"><h3>{t.dashUsedPct}</h3><div className="num" style={{color: '#e53935'}}>{southUsedRate}%</div>
+                    <div className="bar-bg"><div className="bar-fill" style={{width: `${southUsedRate}%`, background: southUsedRate > 80 ? '#e53935' : '#ff9800'}}></div></div>
+                  </div>
+                  <div className="stat-card"><h3>{t.dashEmptyPct}</h3><div className="num" style={{color: '#4caf50'}}>{southEmptyRate}%</div>
+                    <div className="bar-bg"><div className="bar-fill" style={{width: `${southEmptyRate}%`, background: '#4caf50'}}></div></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 🏭 Turnover */}
+              <div>
+                <h3 style={{color: '#757575', borderBottom: '2px solid #eee', paddingBottom: '8px', marginTop: 0}}>🏭 {t.dashTurnover}</h3>
+                <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+                  <div className="stat-card"><h3>{t.dashTurnoverItems}</h3><div className="num" style={{color: '#333'}}>{turnoverCount}</div></div>
+                </div>
+              </div>
+
             </div>
           )}
 
@@ -709,13 +759,13 @@
             <div>
               <div className="card">
                 <h2 style={{marginTop: 0}}>{t.outStep1}</h2>
-                <div style={{ background: '#f5f5f7', padding: '15px', borderRadius: '8px', marginBottom: '15px', display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ background: '#f5f5f7', padding: '15px', borderRadius: '8px', marginBottom: '15px', display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
                   <strong style={{color: '#e53935'}}>{t.destLabel}</strong>
-                  <label style={{cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '16px', fontWeight: 'bold'}}>
+                  <label style={{cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '18px', fontWeight: 'bold'}}>
                     <input type="radio" name="outboundDest" value="customer" checked={outboundDest === 'customer'} onChange={() => setOutboundDest('customer')} style={{width: '20px', height: '20px', margin: 0}} />
                     {t.destCustomer}
                   </label>
-                  <label style={{cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '16px', fontWeight: 'bold'}}>
+                  <label style={{cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '18px', fontWeight: 'bold'}}>
                     <input type="radio" name="outboundDest" value="turnover" checked={outboundDest === 'turnover'} onChange={() => setOutboundDest('turnover')} style={{width: '20px', height: '20px', margin: 0}} />
                     {t.destTurnover}
                   </label>
@@ -740,7 +790,7 @@
                       {outboundPending.map((shelf, idx) => (
                         <div key={idx} className="outbound-item">
                           <div className="outbound-content">
-                            <div style={{color: '#e53935', fontSize: '12px', marginBottom: '2px'}}>📍 Route Step: {idx + 1}</div>
+                            <div style={{color: '#e53935', fontSize: '14px', marginBottom: '2px'}}>📍 Route Step: {idx + 1}</div>
                             <div>📦 {shelf.product_barcode}</div>
                             <div className="outbound-loc">📍 {shelf.warehouse} - {shelf.id} {shelf.batch_date ? `(📅 ${shelf.batch_date})` : ''}</div>
                           </div>
@@ -775,7 +825,7 @@
               <h2 style={{marginTop: 0}}>{t.turnoverTitle} (Total: {turnoverItems.length})</h2>
               <div className="history-table-container">
                 {turnoverItems.length === 0 ? (
-                  <div style={{textAlign: 'center', color: '#999', padding: '30px', fontSize: '16px'}}>{t.turnoverEmpty}</div>
+                  <div style={{textAlign: 'center', color: '#999', padding: '30px', fontSize: '18px'}}>{t.turnoverEmpty}</div>
                 ) : (
                   <table className="history-table">
                     <thead><tr><th>{t.colTime}</th><th>{t.colBarcode}</th><th>{t.colDate}</th><th>{t.colOp}</th><th>Action</th></tr></thead>
@@ -783,7 +833,7 @@
                       {turnoverItems.map(item => (
                         <tr key={item.id}>
                           <td style={{color: '#666'}}>{new Date(item.added_at).toLocaleString(lang === 'zh' ? 'zh-TW' : 'en-US', {month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit'})}</td>
-                          <td style={{fontWeight: 'bold', fontSize: '14px'}}>📦 {item.product_barcode}</td>
+                          <td style={{fontWeight: 'bold', fontSize: '16px'}}>📦 {item.product_barcode}</td>
                           <td>{item.batch_date ? `📅 ${item.batch_date}` : '-'}</td>
                           <td>👤 {item.added_by}</td>
                           <td>
