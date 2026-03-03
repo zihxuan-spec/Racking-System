@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Racking monitoring system</title>
+  <title>Smart Enterprise WMS</title>
   
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -11,6 +11,13 @@
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
   <style>
+    /* 💡 全局變數：定義貨架大小與間距 */
+    :root {
+      --cell-w: 110px;
+      --cell-h: 80px;
+      --cell-gap: 8px 4px; /* 上下8px，左右4px */
+    }
+
     /* 基礎設定與手機適應 */
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f0f2f5; margin: 0; padding: 15px; color: #333; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
     .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; width: 100%; box-sizing: border-box; }
@@ -20,13 +27,12 @@
     .header-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
     .user-badge { background: #e3f2fd; color: #0071e3; padding: 8px 15px; border-radius: 20px; font-weight: bold; display: flex; align-items: center; gap: 5px; font-size: 14px; }
     
-    /* 導覽列 (支援手機橫向滑動) */
-    .nav-bar { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: none; /* Firefox */ -ms-overflow-style: none;  /* IE 10+ */ }
-    .nav-bar::-webkit-scrollbar { display: none; /* Safari and Chrome */ }
+    /* 導覽列 */
+    .nav-bar { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: none; }
+    .nav-bar::-webkit-scrollbar { display: none; }
     .nav-btn { padding: 12px 20px; font-size: 16px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; background: #e4e6eb; color: #4b4f56; white-space: nowrap; flex-shrink: 0; }
     .nav-btn.active { background: #0071e3; color: white; box-shadow: 0 4px 8px rgba(0,113,227,0.3); }
 
-    /* 表單元件 */
     input, select, textarea { padding: 12px; font-size: 16px; border: 2px solid #ccc; border-radius: 8px; width: 100%; box-sizing: border-box; margin-bottom: 10px; font-family: inherit; }
     .btn { padding: 12px 20px; font-size: 16px; background: #0071e3; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; display: inline-flex; align-items: center; gap: 5px; justify-content: center; }
     .btn:active { transform: scale(0.95); }
@@ -35,11 +41,9 @@
     .btn-secondary { background: #757575; }
     .btn-outline { background: transparent; border: 2px solid #0071e3; color: #0071e3; }
 
-    /* 登入畫面 */
     .login-container { display: flex; justify-content: center; align-items: center; min-height: 80vh; padding: 15px; }
     .login-card { background: white; padding: 40px 20px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; max-width: 400px; width: 100%; box-sizing: border-box; }
 
-    /* 儀表板 RWD Grid */
     .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; }
     .stat-card { background: #f8f9fa; padding: 20px 15px; border-radius: 12px; text-align: center; border: 1px solid #eee; }
     .stat-card h3 { font-size: 14px; margin: 0 0 10px 0; color: #666; }
@@ -47,9 +51,8 @@
     .stat-card .bar-bg { width: 100%; background: #e0e0e0; height: 8px; border-radius: 4px; margin-top: 10px; overflow: hidden; }
     .stat-card .bar-fill { height: 100%; background: #4caf50; transition: width 0.5s; }
     
-    /* 清單項目 */
     .pending-list { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
-    .pending-item { padding: 8px 12px; background: #fff3e0; border: 2px solid #ff9800; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px; transition: 0.2s; font-size: 14px; word-break: break-all; }
+    .pending-item { padding: 8px 12px; background: #fff3e0; border: 2px solid #ff9800; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px; transition: 0.2s; font-size: 14px; }
     .pending-item.selected { background: #ff9800; color: white; box-shadow: 0 0 8px rgba(255,152,0,0.6); }
     .delete-btn { background: rgba(229, 57, 53, 0.1); color: #e53935; border-radius: 50%; width: 24px; height: 24px; display: flex; justify-content: center; align-items: center; font-size: 12px; cursor: pointer; transition: 0.2s; flex-shrink: 0; }
     .delete-btn:hover { background: #e53935; color: white; }
@@ -57,12 +60,11 @@
     .pending-item.selected .delete-btn:hover { background: white; color: #e53935; }
 
     .outbound-item { padding: 12px; background: #e3f2fd; border: 2px solid #2196f3; border-radius: 8px; font-weight: bold; display: flex; align-items: flex-start; gap: 10px; position: relative; font-size: 14px; }
-    .outbound-content { display: flex; flex-direction: column; flex-grow: 1; word-break: break-all; }
+    .outbound-content { display: flex; flex-direction: column; flex-grow: 1; }
     .outbound-loc { font-size: 12px; color: #1565c0; margin-top: 4px; }
-    .outbound-not-found { background: #ffebee; border-color: #f44336; color: #d32f2f; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; font-weight: bold; font-size: 14px; word-break: break-all; }
+    .outbound-not-found { background: #ffebee; border-color: #f44336; color: #d32f2f; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; font-weight: bold; font-size: 14px; }
     .route-badge { position: absolute; top: -8px; left: -8px; background: #e53935; color: white; border-radius: 50%; width: 22px; height: 22px; display: flex; justify-content: center; align-items: center; font-size: 12px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 2; }
 
-    /* 地圖導覽 (手機橫向滑動) */
     .warehouse-tabs { display: flex; gap: 5px; margin-bottom: 10px; border-bottom: 2px solid #ccc; overflow-x: auto; padding-bottom: 5px; }
     .wh-btn { padding: 10px 15px; font-size: 16px; font-weight: bold; border: none; border-radius: 8px 8px 0 0; cursor: pointer; background: transparent; color: #888; white-space: nowrap; flex-shrink: 0; }
     .wh-btn.active { color: #0071e3; border-bottom: 3px solid #0071e3; margin-bottom: -8px; }
@@ -70,33 +72,42 @@
     .zone-btn { padding: 8px 16px; font-size: 14px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; background: #e0e0e0; flex-shrink: 0; }
     .zone-btn.active { background: #333; color: white; }
 
-    /* 實體地圖區塊 */
+    /* 地圖區塊 */
     .warehouse-floor { background-color: #d1d1d6; padding: 15px; border-radius: 12px; overflow: auto; box-shadow: inset 0 4px 10px rgba(0,0,0,0.1); max-height: 60vh; -webkit-overflow-scrolling: touch; }
     .shelf { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 8px; text-align: center; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.2s; position: relative; user-select: none; }
-    .shelf h2 { margin: 0 0 5px 0; font-size: 12px; word-break: break-all; }
-    .shelf p { margin: 0; font-size: 11px; font-weight: bold; word-break: break-all; }
-    .shelf .date-tag { font-size: 9px; color: #1565c0; background: rgba(255,255,255,0.9); padding: 2px 4px; border-radius: 4px; margin-top: 2px; }
+    .shelf h2 { margin: 0 0 5px 0; font-size: 14px; word-break: break-all; }
+    .shelf p { margin: 0; font-size: 12px; font-weight: bold; word-break: break-all; }
+    .shelf .date-tag { font-size: 10px; color: #1565c0; background: rgba(255,255,255,0.9); padding: 2px 4px; border-radius: 4px; margin-top: 2px; }
 
     @keyframes flash { 0% { opacity: 1; transform: scale(1); box-shadow: 0 0 0px red; } 50% { opacity: 0.8; transform: scale(1.05); box-shadow: 0 0 15px red; } 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0px red; } }
     .target-flashing { animation: flash 1.5s infinite; border: 3px solid red !important; z-index: 10; }
     @keyframes pulseYellow { 0% { border-color: transparent; } 50% { border-color: #ffeb3b; } 100% { border-color: transparent; } }
     .ready-to-assign { animation: pulseYellow 1.5s infinite; border: 3px dashed transparent; }
 
-    /* 彈跳視窗 Modal */
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 9999; backdrop-filter: blur(3px); padding: 15px; }
     .modal-card { background: white; padding: 25px; border-radius: 16px; max-width: 500px; width: 100%; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.2); animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); max-height: 90vh; display: flex; flex-direction: column; box-sizing: border-box; }
-    .modal-card h3 { margin-top: 0; font-size: 20px; color: #333; }
-    .modal-actions { display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
-    .modal-actions button { flex: 1; min-width: 100px; }
-    @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
-    /* 💡 手機版表格防跑版處理 */
+    
+    /* 歷史紀錄防跑版 */
     .history-table-container { overflow-x: auto; overflow-y: auto; flex-grow: 1; margin-bottom: 10px; text-align: left; -webkit-overflow-scrolling: touch; width: 100%; }
     .history-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 400px; }
     .history-table th, .history-table td { border-bottom: 1px solid #eee; padding: 12px 8px; white-space: nowrap; }
     .history-table th { background-color: #f8f9fa; position: sticky; top: 0; color: #555; z-index: 1; }
-    .tag-in { background: #e8f5e9; color: #2e7d32; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
-    .tag-out { background: #ffebee; color: #c62828; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+
+    /* 💡 【Zebra / 手機專屬優化模式】 */
+    @media (max-width: 768px) {
+      :root {
+        --cell-w: 80px;  /* 格子變窄 */
+        --cell-h: 65px;  /* 格子變矮 */
+        --cell-gap: 6px 3px; /* 間隙稍微縮小 */
+      }
+      .shelf h2 { font-size: 11px; margin-bottom: 2px; }
+      .shelf p { font-size: 10px; }
+      .shelf .date-tag { font-size: 8px; padding: 1px 2px; }
+      .warehouse-floor { padding: 10px; }
+      
+      .top-header h1 { font-size: 22px !important; }
+      .nav-btn { font-size: 14px; padding: 10px 15px; }
+    }
   </style>
 </head>
 <body>
@@ -112,7 +123,7 @@
 
     const dict = {
       en: {
-        appTitle: "🏢 Racking monitoring system ", loginTitle: "🔐 System Login", loginDesc: "Please enter your registered name/ID",
+        appTitle: "🏢 Smart WMS", loginTitle: "🔐 System Login", loginDesc: "Please enter your registered name/ID",
         loginBtn: "Login", empIdPlaceholder: "e.g., Admin", logout: "Logout", switchLang: "中文",
         navDash: "📊 Dashboard", navIn: "📥 Inbound", navOut: "📤 Outbound", navMap: "🗺️ Live Map", navTurnover: "🔄 Turnover",
         capTotal: "Total Capacity", capUsed: "Used Space", capEmpty: "Empty Slots", capRate: "Usage Rate",
@@ -122,7 +133,7 @@
         autoAssignTitle: "🤖 Auto Assign:", autoAssignBtn: "Auto Fill Zone", clearList: "🗑️ Clear List", cancelScan: "❌ Cancel",
         manualAssignTitle: "🖐️ Manual Assign:", manualAssignDesc: "Select item below, then tap a flashing empty slot.",
         outStep1: "📤 Batch Outbound (FIFO & Routing)", outPlaceholder: "Paste barcodes to pick...",
-        destLabel: "📍 Pick Dest: ", destCustomer: "🚚 Customer", destTurnover: "🏭 Turnover",
+        destLabel: "📍 Pick Destination: ", destCustomer: "🚚 Ship to Customer", destTurnover: "🏭 Transfer to Turnover",
         outStep2: "🛒 Pick Route ({n} found)", outNotFound: "❌ Not Found ({n})",
         outBtnAll: "Pick All Items", clearNotFound: "Clear List",
         turnoverTitle: "🏭 Turnover Warehouse List", turnoverEmpty: "No items currently in Turnover Warehouse.", 
@@ -136,23 +147,23 @@
         msgOccupied: "⚠️ Slot occupied!", msgFail: "Operation failed!",
         msgSelectFirst: "⚠️ Select an item from the list first!", msgNotFound: "❌ Item not found in warehouse!", 
         scanSuccess: "👉 Ready to store: 【{name}】\nPlease tap a flashing slot!",
-        historyTitle: "📝 Audit Log:", colTime: "Time", colAction: "Action", colBarcode: "Barcode", colOp: "Op",
+        historyTitle: "📝 Audit Log:", colTime: "Time", colAction: "Action", colBarcode: "Barcode", colOp: "Operator",
         actIn: "📥 In", actOut: "📤 Out", actOutCust: "📤 Ship (Cust)", actOutTurn: "🏭 Transfer (Turnover)", noHistory: "No history records found.",
         msgInvalidUser: "❌ Login Failed! Name not found in employee roster or typing error."
       },
       zh: {
-        appTitle: "🏢 貨架監控系統", loginTitle: "🔐 系統登入", loginDesc: "請輸入建檔的員工姓名或編號",
+        appTitle: "🏢 總廠智慧 WMS 系統", loginTitle: "🔐 系統登入", loginDesc: "請輸入建檔的員工姓名或編號",
         loginBtn: "登入系統", empIdPlaceholder: "例如: 王大明", logout: "登出", switchLang: "English",
         navDash: "📊 儀表板", navIn: "📥 批次上架", navOut: "📤 智慧下架", navMap: "🗺️ 即時地圖", navTurnover: "🔄 週轉倉清單",
         capTotal: "總庫存容量", capUsed: "已使用空間", capEmpty: "剩餘空位", capRate: "總體使用率",
-        exportBtn: "📥 導出 CSV", exportSuccess: "✅ 資料已成功導出！",
+        exportBtn: "📥 導出庫存資料 (CSV)", exportSuccess: "✅ 資料已成功導出！",
         inStep1: "📥 批次輸入進貨清單", inPlaceholder: "請在此貼上多筆產品條碼...",
         addPending: "➕ 加入清單", inStep2: "⚙️ 分配儲位", pendingCount: "剩餘 {n} 件",
         autoAssignTitle: "🤖 自動分配：", autoAssignBtn: "一鍵填滿此區", clearList: "🗑️ 清空清單", cancelScan: "❌ 取消掃描",
         manualAssignTitle: "🖐️ 手動指定：", manualAssignDesc: "點選下方物品，然後點擊地圖空位。",
         outStep1: "📤 輸入揀貨清單 (支援 FIFO)", outPlaceholder: "請貼上多筆要下架的商品條碼...",
-        destLabel: "📍 目的地：", destCustomer: "🚚 出貨給客戶", destTurnover: "🏭 轉移至週轉倉",
-        outStep2: "🛒 最佳路徑規劃 (共 {n} 件)", outNotFound: "❌ 找不到 ({n}件)",
+        destLabel: "📍 選擇下架目的地：", destCustomer: "🚚 直接出貨給客戶", destTurnover: "🏭 轉移至 週轉倉 (Turnover)",
+        outStep2: "🛒 最佳路徑規劃 (共 {n} 件)", outNotFound: "❌ 找不到的物品 ({n}件)",
         outBtnAll: "一鍵完成全部揀貨", clearNotFound: "清除找不到的項目",
         turnoverTitle: "🏭 Turnover Warehouse (無貨架區)", turnoverEmpty: "目前 Turnover Warehouse 內沒有任何庫存。", 
         btnShipTurnover: "🚚 出貨移除", msgTurnoverShip: "確定將此物品從 Turnover Warehouse 出貨並移除嗎？",
@@ -257,7 +268,7 @@
         let timer;
         const handleKeyDown = (e) => {
           if (e.ctrlKey || e.altKey || e.metaKey) return;
-          if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return; // 防呆：如果在打字就不要觸發全域掃描
+          if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return; 
           if (e.key === 'Enter') {
             if (buffer.trim()) queryProduct(buffer.trim());
             buffer = ''; return;
@@ -521,7 +532,8 @@
               {zones.map(z => <button key={z} className={`zone-btn ${activeZone === z ? 'active' : ''}`} onClick={() => setActiveZone(z)}>{z} {lang==='zh'?'區':'Zone'}</button>)}
             </div>
 
-            <div className="warehouse-floor" style={{ display: 'grid', gridTemplateColumns: `repeat(${maxCols}, 110px)`, gridTemplateRows: `repeat(${maxRows}, 80px)`, gap: '2px 4px' }}>
+            {/* 💡 這裡套用了 CSS 變數 var(--cell-w) 讓它在手機上能自動縮小！ */}
+            <div className="warehouse-floor" style={{ display: 'grid', gridTemplateColumns: `repeat(${maxCols}, var(--cell-w))`, gridTemplateRows: `repeat(${maxRows}, var(--cell-h))`, gap: 'var(--cell-gap)' }}>
               {filteredShelves.map(shelf => {
                 const isEmpty = shelf.status === 'empty';
                 let isTarget = false;
@@ -789,8 +801,6 @@
             </div>
           )}
 
-          {currentView === 'map' && renderMap()}
-
         </div>
       );
     }
@@ -799,6 +809,4 @@
     root.render(<App />);
   </script>
 </body>
-
 </html>
-
