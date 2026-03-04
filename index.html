@@ -196,11 +196,10 @@
         msgRemovePendingControl: "⚠️ You are removing {n} item(s) from the Inbound list.\n\n• If these came from Turnover, please [Return to Turnover] to prevent data loss.\n• If this is a scanning error, click [Discard].",
         btnReturnToTurnover: "🔙 Return to Turnover",
         btnDiscard: "🗑️ Discard",
-        msgRemoveOutboundAssignControl: "⚠️ To prevent inventory loss, the {n} cancelled finished goods will be automatically returned to the Turnover Warehouse. Continue?",
-        msgReturnSouthToTurnoverConfirm: "Return {n} selected finished goods back to Turnover? (Batch numbers will be removed)"
+        msgRemoveOutboundAssignControl: "⚠️ To prevent inventory loss, the {n} cancelled finished goods will be automatically returned to the Turnover Warehouse. Continue?"
       },
       zh: {
-        appTitle: "🏢 貨架監控系統", loginTitle: "🔐 系統登入", loginDesc: "請輸入建檔的員工姓名或編號",
+        appTitle: "🏢 總廠智慧 WMS", loginTitle: "🔐 系統登入", loginDesc: "請輸入建檔的員工姓名或編號",
         loginBtn: "登入系統", empIdPlaceholder: "例如: 王大明", logout: "登出", switchLang: "English",
         navDash: "📊 儀表板", navIn: "📥 批次上架", navOut: "📤 智慧下架", navMap: "🗺️ 即時地圖", navTurnover: "🔄 週轉倉清單",
         navZebra: "📱 Zebra 掃描模式",
@@ -257,8 +256,7 @@
         msgRemovePendingControl: "⚠️ 您即將從待上架清單移除 {n} 個項目。\n\n• 若這些物品來自【週轉加工區】，請點選「退回週轉倉」避免庫存遺失。\n• 若僅是掃描錯誤，請點選「直接捨棄」。",
         btnReturnToTurnover: "🔙 退回週轉倉",
         btnDiscard: "🗑️ 直接捨棄",
-        msgRemoveOutboundAssignControl: "⚠️ 為了防止庫存遺失，取消放置的 {n} 件成品將會自動退回【週轉加工區】。確定要執行嗎？",
-        msgReturnSouthToTurnoverConfirm: "確定將選取的 {n} 件成品取消出貨，退回【週轉加工區】嗎？\n(注意：系統將會撕除它們的成品批號，還原為獨立桶號)"
+        msgRemoveOutboundAssignControl: "⚠️ 為了防止庫存遺失，取消放置的 {n} 件成品將會自動退回【週轉加工區】。確定要執行嗎？"
       }
     };
 
@@ -398,7 +396,6 @@
       const handleSmartScan = (barcodeToSearch) => {
         if (viewRef.current === 'outbound') {
            let availableShelves = shelvesRef.current.filter(s => s.status === 'occupied' && !outPendingRef.current.find(p => p.id === s.id) && s.warehouse === 'South Warehouse');
-           // 💡 出貨尋找：以 batch_no (批號) 為主，如果沒有批號則退回找 product_barcode (桶號)
            let matching = availableShelves.filter(s => s.batch_no === barcodeToSearch || s.product_barcode === barcodeToSearch);
 
            if (matching.length > 0) {
@@ -534,7 +531,6 @@
 
          showConfirm(t.msgRemoveOutboundAssignControl.replace('{n}', items.length), async () => {
              const todayDate = new Date().toISOString().split('T')[0];
-             // 💡 退回時只保留原來的 UID (barcode)，批號 (batch_no) 自然被丟棄了
              const records = items.map(obj => ({ product_barcode: obj.barcode, batch_date: todayDate, added_by: currentUser }));
              await supabase.from('turnover_inventory').insert(records);
              fetchTurnover();
@@ -591,10 +587,9 @@
             const targetObj = outboundAssignItems.find(i => i.id === selectedOutboundAssign);
             if (!targetObj) return;
             const barcode = targetObj.barcode;
-            const batchNo = targetObj.batch_no; // 💡 抓出批號
+            const batchNo = targetObj.batch_no;
             const todayDate = new Date().toISOString().split('T')[0];
             
-            // 💡 寫入貨架時，同時保存 UID (barcode) 跟 批號 (batch_no)
             const { error } = await supabase.from('shelves').update({ 
                 status: 'occupied', 
                 product_barcode: barcode, 
@@ -734,7 +729,7 @@
             supabase.from('shelves').update({ 
                status: 'occupied', 
                product_barcode: itemObj.barcode, 
-               batch_no: itemObj.batch_no, // 💡 自動上架也要寫入批號
+               batch_no: itemObj.batch_no, 
                batch_date: todayDate, 
                last_updated_by: currentUser 
             }).eq('id', emptyShelves[idx].id)
@@ -792,7 +787,6 @@
       const handlePickAllFound = () => {
         if(outboundPending.length === 0) return;
         showConfirm(t.msgShipConfirm.replace('{n}', outboundPending.length), async () => {
-          // 💡 出貨時，清空包含 batch_no 在內的所有資訊
           const updates = outboundPending.map(shelf => 
             supabase.from('shelves').update({ status: 'empty', product_barcode: null, batch_no: null, batch_date: null, last_updated_by: currentUser }).eq('id', shelf.id)
           );
@@ -802,35 +796,6 @@
              shelf_id: shelf.id, action: 'outbound_customer', product_barcode: shelf.product_barcode, batch_no: shelf.batch_no, operator: currentUser
           }));
           await writeHistory(historyRecords);
-
-          setOutboundPending([]);
-          showAlert(t.msgAutoSuccess);
-          fetchShelves();
-        });
-      };
-
-      // 💡 隱藏神技：南區已上架成品，直接取消並退回加工區！ (自動撕掉 batch_no)
-      const handleReturnSouthToTurnover = () => {
-        if(outboundPending.length === 0) return;
-        showConfirm(t.msgReturnSouthToTurnoverConfirm.replace('{n}', outboundPending.length), async () => {
-          const updates = outboundPending.map(shelf =>
-            supabase.from('shelves').update({ status: 'empty', product_barcode: null, batch_no: null, batch_date: null, last_updated_by: currentUser }).eq('id', shelf.id)
-          );
-          await Promise.all(updates);
-
-          const historyRecords = outboundPending.map(shelf => ({
-             shelf_id: shelf.id, action: 'outbound_return_turnover', product_barcode: shelf.product_barcode, batch_no: shelf.batch_no, operator: currentUser
-          }));
-          await writeHistory(historyRecords);
-
-          // 退回時只存入 product_barcode，batch_no 欄位自動捨棄
-          const turnoverRecords = outboundPending.map(shelf => ({
-             product_barcode: shelf.product_barcode,
-             batch_date: shelf.batch_date,
-             added_by: currentUser
-          }));
-          await supabase.from('turnover_inventory').insert(turnoverRecords);
-          fetchTurnover();
 
           setOutboundPending([]);
           showAlert(t.msgAutoSuccess);
@@ -901,7 +866,6 @@
          await supabase.from('turnover_inventory').delete().in('id', selectedTurnover);
          fetchTurnover();
 
-         // 💡 把批號紀錄到 Object 裡面
          const newAssigns = itemsToMove.map(i => ({ 
              id: Date.now().toString() + '-' + Math.floor(Math.random() * 10000), 
              barcode: i.product_barcode,
@@ -1040,7 +1004,6 @@
                 if (isTransferTarget) classNames += 'transfer-selected ';
                 if (isReadyAssign) classNames += 'ready-to-assign ';
                 
-                // 💡 雙軌顯示魔法：只要有批號，地圖上就只顯示批號
                 const displayCode = shelf.batch_no ? shelf.batch_no : shelf.product_barcode;
 
                 return (
@@ -1139,7 +1102,6 @@
                                  record.action === 'outbound_turnover' ? t.actOutTurn : t.actOut}
                               </span>
                             </td>
-                            {/* 💡 歷史紀錄同樣支援雙軌顯示 */}
                             <td style={{fontWeight: 'bold'}}>
                               {record.batch_no ? `${record.batch_no} (UID: ${record.product_barcode})` : record.product_barcode}
                             </td>
@@ -1322,7 +1284,6 @@
                     <div className="pending-list">
                       {outboundAssignItems.map((itemObj) => (
                         <div key={itemObj.id} className={`pending-item ${selectedOutboundAssign === itemObj.id ? 'selected' : ''}`} onClick={() => setSelectedOutboundAssign(itemObj.id)}>
-                          {/* 💡 雙軌顯示：大字批號，小字桶號 */}
                           <div>
                              📦 {itemObj.batch_no} <span style={{fontSize: '11px', color: '#666'}}>(UID: {itemObj.barcode})</span>
                           </div>
@@ -1346,8 +1307,7 @@
                     <h2 style={{marginTop: 0, color: '#d32f2f'}}>{t.outStep2.replace('{n}', outboundPending.length)}</h2>
                     <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                       <button className="btn btn-secondary" onClick={() => setOutboundPending([])}>{t.clearList}</button>
-                      {/* 💡 新增退庫按鈕：南區一鍵退回加工區 */}
-                      {outboundPending.length > 0 && <button className="btn btn-secondary" style={{background: '#ff9800', border: 'none', color: 'white'}} onClick={handleReturnSouthToTurnover}>{t.btnReturnToTurnover}</button>}
+                      {/* 💡 已移除「退回週轉倉」按鈕 */}
                       {outboundPending.length > 0 && <button className="btn btn-danger" onClick={handlePickAllFound}>{t.btnShipAll}</button>}
                     </div>
                   </div>
@@ -1358,7 +1318,6 @@
                         <div key={idx} className="outbound-item">
                           <div className="outbound-content">
                             <div style={{color: '#e53935', fontSize: '12px', marginBottom: '2px'}}>📍 Route Step: {idx + 1}</div>
-                            {/* 💡 雙軌顯示 */}
                             <div>📦 {shelf.batch_no || shelf.product_barcode}</div>
                             <div className="outbound-loc">📍 {shelf.warehouse} - {shelf.id} {shelf.batch_date ? `(📅 ${shelf.batch_date})` : ''}</div>
                           </div>
