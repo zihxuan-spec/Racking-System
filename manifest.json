@@ -1,6 +1,6 @@
 {
   "name": "Racking monitoring system",
-  "short_name": "Smart WMS",
+  "short_name": "Racking",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f0f2f5",
