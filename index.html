@@ -1014,7 +1014,7 @@
 
           {currentView === 'zebra' && (
             <div className="card" style={{ border: '3px solid #333', textAlign: 'center', padding: '40px 20px', backgroundColor: '#fffde7' }}>
-              <h1 style={{fontSize: '28px', color: '#333', marginTop: 0}}>🔫 {t.zebraTitle}</h1>
+              <h1 style={{fontSize: '28px', color: '#333', marginTop: 0}}> {t.zebraTitle}</h1>
               <p style={{fontSize: '18px', color: '#666'}}>{t.zebraDesc}</p>
               <form onSubmit={handleZebraSubmit}>
                 <input 
@@ -1037,7 +1037,7 @@
           {currentView === 'dashboard' && (
             <div className="card">
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px'}}>
-                <h2 style={{margin: 0}}>📈 {t.navDash}</h2>
+                <h2 style={{margin: 0}}> {t.navDash}</h2>
                 <button className="btn btn-success" onClick={handleExportCSV}>{t.exportBtn}</button>
               </div>
 
@@ -1282,3 +1282,4 @@
   </script>
 </body>
 </html>
+
