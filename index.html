@@ -469,9 +469,59 @@
       }, [currentView, currentUser, batchInputModal.isOpen, modal.isOpen]);
 
       const handleExportCSV = () => {
-        const headers = ['Shelf ID', 'Warehouse', 'Zone', 'Status', 'Barcode', 'Batch Date', 'Last Operator'];
-        const rows = shelves.map(s => [s.id, s.warehouse || '', s.zone || '', s.status, s.product_barcode || '', s.batch_date || '', s.last_updated_by || '']);
-        const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+        // 💡 1. 統一定義完美的 CSV 欄位標頭
+        const headers = ['Warehouse Area', 'Zone', 'Shelf ID', 'Status', 'Barcode / Batch No.', 'Batch Date', 'Operator', 'Action Time'];
+        
+        // 💡 2. 抓取並整理：北邊倉庫 (North Warehouse)
+        const northRows = shelves
+          .filter(s => s.warehouse === 'North Warehouse')
+          .map(s => [
+            'North Warehouse', 
+            s.zone || '-', 
+            s.id, 
+            s.status === 'occupied' ? 'Occupied (已佔用)' : 'Empty (空位)', 
+            s.product_barcode || '-', 
+            s.batch_date || '-', 
+            s.last_updated_by || '-', 
+            '-' // 貨架沒有特別記錄秒數，留空
+          ]);
+
+        // 💡 3. 抓取並整理：南邊倉庫 (South Warehouse)
+        const southRows = shelves
+          .filter(s => s.warehouse === 'South Warehouse')
+          .map(s => [
+            'South Warehouse', 
+            s.zone || '-', 
+            s.id, 
+            s.status === 'occupied' ? 'Occupied (已佔用)' : 'Empty (空位)', 
+            s.product_barcode || '-', 
+            s.batch_date || '-', 
+            s.last_updated_by || '-', 
+            '-'
+          ]);
+
+        // 💡 4. 抓取並整理：週轉加工區 (Turnover Area)
+        const turnoverRows = turnoverItems.map(t => [
+          'Turnover Area', 
+          '-', // 週轉倉沒有實體 Zone
+          '-', // 週轉倉沒有實體 Shelf ID
+          'Processing (加工中)', 
+          t.product_barcode || '-', 
+          t.batch_date || '-', 
+          t.added_by || '-', 
+          new Date(t.added_at).toLocaleString(lang === 'zh' ? 'zh-TW' : 'en-US', { hour12: false }) // 記錄精準的投入時間
+        ]);
+
+        // 💡 5. 按照 North -> South -> Turnover 的順序無縫合併
+        const allRows = [...northRows, ...southRows, ...turnoverRows];
+
+        // 💡 6. 組合 CSV 內容 (加上雙引號防呆，避免條碼中有逗號導致欄位錯亂)
+        const csvContent = [
+          headers.join(','), 
+          ...allRows.map(row => row.map(item => `"${item}"`).join(','))
+        ].join('\n');
+
+        // 💡 7. 觸發下載
         const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
@@ -480,6 +530,7 @@
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        
         showAlert(t.exportSuccess);
       };
 
@@ -1282,6 +1333,7 @@
   </script>
 </body>
 </html>
+
 
 
 
