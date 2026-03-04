@@ -1,0 +1,16 @@
+{
+  "name": "Smart Enterprise WMS",
+  "short_name": "Smart WMS",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f0f2f5",
+  "theme_color": "#0071e3",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
