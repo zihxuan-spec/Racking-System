@@ -351,7 +351,7 @@
       };
 
       const fetchShelves = async () => {
-        const { data } = await supabase.from('shelves').select('*').order('id', { ascending: true });
+        const { data } = await supabase.from('shelves').select('*').limit(10000).order('id', { ascending: true });
         if (data) setShelves(data);
       };
 
@@ -1282,3 +1282,4 @@
   </script>
 </body>
 </html>
+
