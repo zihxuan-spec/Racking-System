@@ -196,7 +196,15 @@
         msgRemovePendingControl: "⚠️ You are removing {n} item(s) from the Inbound list.\n\n• If these came from Turnover, please [Return to Turnover] to prevent data loss.\n• If this is a scanning error, click [Discard].",
         btnReturnToTurnover: "🔙 Return to Turnover",
         btnDiscard: "🗑️ Discard",
-        msgRemoveOutboundAssignControl: "⚠️ To prevent inventory loss, the {n} cancelled finished goods will be automatically returned to the Turnover Warehouse. Continue?"
+        msgRemoveOutboundAssignControl: "⚠️ To prevent inventory loss, the {n} cancelled finished goods will be automatically returned to the Turnover Warehouse. Continue?",
+        msgReturnSouthToTurnoverConfirm: "Return {n} selected finished goods back to Turnover? (Batch numbers will be removed)",
+
+        // 💡 英文新增智能備料文字
+        smartTransferTitle: "🧠 Smart FIFO Transfer",
+        categoryStr: "Category",
+        qtyStr: "Req. Qty",
+        btnSmartSelect: "Auto Select Oldest",
+        msgInsufficientStock: "⚠️ Insufficient stock! Only {n} available drum(s) grabbed."
       },
       zh: {
         appTitle: "🏢 總廠智慧 WMS", loginTitle: "🔐 系統登入", loginDesc: "請輸入建檔的員工姓名或編號",
@@ -232,7 +240,7 @@
         msgDupFilter: "⚠️ 已自動過濾 {n} 筆重複桶號！\n{list}",
         msgDupSingle: "❌ 桶號【{bc}】已在庫存中，無法重複上架！",
 
-        inboundInstruction: "💡 點擊綠色空位上架；點擊「已有物品」的貨架可多選並轉移至週轉倉。",
+        inboundInstruction: "💡 點擊綠色空位上架；點擊「已有物品」的貨架可手動多選並轉移至週轉倉。",
         outboundInstruction: "💡 貼上成品批號，或直接點擊下方地圖貨架，多選後一鍵出貨。",
         transferListTitle: "🔄 已選取準備加工 ({n} 桶)",
         btnTransferTurnover: "🏭 一鍵投入加工",
@@ -256,7 +264,15 @@
         msgRemovePendingControl: "⚠️ 您即將從待上架清單移除 {n} 個項目。\n\n• 若這些物品來自【週轉加工區】，請點選「退回週轉倉」避免庫存遺失。\n• 若僅是掃描錯誤，請點選「直接捨棄」。",
         btnReturnToTurnover: "🔙 退回週轉倉",
         btnDiscard: "🗑️ 直接捨棄",
-        msgRemoveOutboundAssignControl: "⚠️ 為了防止庫存遺失，取消放置的 {n} 件成品將會自動退回【週轉加工區】。確定要執行嗎？"
+        msgRemoveOutboundAssignControl: "⚠️ 為了防止庫存遺失，取消放置的 {n} 件成品將會自動退回【週轉加工區】。確定要執行嗎？",
+        msgReturnSouthToTurnoverConfirm: "確定將選取的 {n} 件成品取消出貨，退回【週轉加工區】嗎？\n(注意：系統將會撕除它們的成品批號，還原為獨立桶號)",
+
+        // 💡 中文新增智能備料文字
+        smartTransferTitle: "🧠 智能先進先出 (FIFO) 備料",
+        categoryStr: "產品類別：",
+        qtyStr: "需求數量：",
+        btnSmartSelect: "自動抓取最舊庫存",
+        msgInsufficientStock: "⚠️ 庫存不足！該類別僅剩餘 {n} 桶，已全部為您抓取。"
       }
     };
 
@@ -287,10 +303,15 @@
       const [autoAssignZone, setAutoAssignZone] = React.useState('');
       const [inboundTransferSelected, setInboundTransferSelected] = React.useState([]); 
 
+      // 💡 新增：智能備料 (Smart Transfer) 的狀態
+      const [transferCategory, setTransferCategory] = React.useState('');
+      const [transferQty, setTransferQty] = React.useState(1);
+
       const [outboundInput, setOutboundInput] = React.useState('');
       const [outboundPending, setOutboundPending] = React.useState([]); 
       const [outboundNotFound, setOutboundNotFound] = React.useState([]); 
       
+      const [outboundAssignItems, setOutboundAssignItems] = React.useState([]);
       const [selectedOutboundAssign, setSelectedOutboundAssign] = React.useState(null);
       const [autoAssignZoneOutbound, setAutoAssignZoneOutbound] = React.useState('');
 
@@ -311,7 +332,7 @@
       const [pendingItems, setPendingItems] = React.useState(() => {
          try { return JSON.parse(localStorage.getItem('wms_pendingItems')) || []; } catch(e) { return []; }
       });
-      const [outboundAssignItems, setOutboundAssignItems] = React.useState(() => {
+      const [outboundAssignItemsCache, setOutboundAssignItemsCache] = React.useState(() => {
          try { return JSON.parse(localStorage.getItem('wms_outboundAssignItems')) || []; } catch(e) { return []; }
       });
 
@@ -392,6 +413,65 @@
            setSelectedTurnover(prev => prev.filter(id => data.some(item => item.id === id)));
         }
       };
+
+      // 💡 智能備料：計算當前北區擁有哪些「產品類別 (Prefix)」及其數量
+      const getAvailableCategories = () => {
+          const northOccupied = shelves.filter(s => s.warehouse === 'North Warehouse' && s.status === 'occupied' && s.product_barcode);
+          const counts = {};
+          northOccupied.forEach(s => {
+              const prefix = s.product_barcode.split('-')[0]; // 以 - 切割取得前綴
+              counts[prefix] = (counts[prefix] || 0) + 1;
+          });
+          return counts; // 回傳如: { AZT: 10, OWP: 5 }
+      };
+
+      const categoryCounts = getAvailableCategories();
+      const availableCategories = Object.keys(categoryCounts).sort();
+
+      // 💡 確保下拉選單預設有值
+      React.useEffect(() => {
+          if (availableCategories.length > 0 && !availableCategories.includes(transferCategory)) {
+              setTransferCategory(availableCategories[0]);
+          }
+      }, [shelves, transferCategory, availableCategories]);
+
+      // 💡 核心邏輯：執行智能先進先出抓取
+      const handleSmartSelectForTurnover = () => {
+          if (!transferCategory || transferQty < 1) return;
+
+          // 1. 篩選出所有符合類別的北區庫存，並排除「已經在準備名單內」的
+          const alreadySelectedIds = inboundTransferSelected.map(s => s.id);
+          const candidates = shelves.filter(s =>
+              s.warehouse === 'North Warehouse' &&
+              s.status === 'occupied' &&
+              s.product_barcode &&
+              s.product_barcode.startsWith(transferCategory + '-') &&
+              !alreadySelectedIds.includes(s.id)
+          );
+
+          if (candidates.length === 0) {
+              return showAlert(`目前北邊倉庫沒有可用的 ${transferCategory} 了！`);
+          }
+
+          // 2. 依照入庫日期進行排序 (越舊的越前面 FIFO)
+          candidates.sort((a, b) => {
+              const dateA = a.batch_date ? new Date(a.batch_date) : new Date('9999-12-31');
+              const dateB = b.batch_date ? new Date(b.batch_date) : new Date('9999-12-31');
+              return dateA - dateB;
+          });
+
+          // 3. 截取使用者要求的數量
+          const toSelect = candidates.slice(0, parseInt(transferQty, 10));
+
+          if (toSelect.length < parseInt(transferQty, 10)) {
+              showAlert(t.msgInsufficientStock.replace('{n}', toSelect.length));
+          }
+
+          // 4. 加入準備轉移的清單
+          setInboundTransferSelected(prev => [...prev, ...toSelect]);
+          setTransferQty(1); // 重置數量
+      };
+
 
       const handleSmartScan = (barcodeToSearch) => {
         if (viewRef.current === 'outbound') {
@@ -803,6 +883,33 @@
         });
       };
 
+      const handleReturnSouthToTurnover = () => {
+        if(outboundPending.length === 0) return;
+        showConfirm(t.msgReturnSouthToTurnoverConfirm.replace('{n}', outboundPending.length), async () => {
+          const updates = outboundPending.map(shelf =>
+            supabase.from('shelves').update({ status: 'empty', product_barcode: null, batch_no: null, batch_date: null, last_updated_by: currentUser }).eq('id', shelf.id)
+          );
+          await Promise.all(updates);
+
+          const historyRecords = outboundPending.map(shelf => ({
+             shelf_id: shelf.id, action: 'outbound_return_turnover', product_barcode: shelf.product_barcode, batch_no: shelf.batch_no, operator: currentUser
+          }));
+          await writeHistory(historyRecords);
+
+          const turnoverRecords = outboundPending.map(shelf => ({
+             product_barcode: shelf.product_barcode,
+             batch_date: shelf.batch_date,
+             added_by: currentUser
+          }));
+          await supabase.from('turnover_inventory').insert(turnoverRecords);
+          fetchTurnover();
+
+          setOutboundPending([]);
+          showAlert(t.msgAutoSuccess);
+          fetchShelves();
+        });
+      };
+
       const handleTransferInboundToTurnover = () => {
         if(inboundTransferSelected.length === 0) return;
         showConfirm(t.msgTransferTurnoverConfirm.replace('{n}', inboundTransferSelected.length), async () => {
@@ -1137,7 +1244,7 @@
 
           {currentView === 'zebra' && (
             <div className="card" style={{ border: '3px solid #333', textAlign: 'center', padding: '40px 20px', backgroundColor: '#fffde7' }}>
-              <h1 style={{fontSize: '28px', color: '#333', marginTop: 0}}> {t.zebraTitle}</h1>
+              <h1 style={{fontSize: '28px', color: '#333', marginTop: 0}}>🔫 {t.zebraTitle}</h1>
               <p style={{fontSize: '18px', color: '#666'}}>{t.zebraDesc}</p>
               <form onSubmit={handleZebraSubmit}>
                 <input 
@@ -1160,7 +1267,7 @@
           {currentView === 'dashboard' && (
             <div className="card">
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px'}}>
-                <h2 style={{margin: 0}}> {t.navDash}</h2>
+                <h2 style={{margin: 0}}>📈 {t.navDash}</h2>
                 <button className="btn btn-success" onClick={handleExportCSV}>{t.exportBtn}</button>
               </div>
 
@@ -1202,6 +1309,27 @@
 
           {currentView === 'inbound' && (
             <div>
+              {/* 💡 新增：智能備料 (Smart FIFO Transfer) 卡片 */}
+              <div className="card" style={{ border: '2px solid #9c27b0' }}>
+                 <h2 style={{marginTop: 0, color: '#7b1fa2'}}>{t.smartTransferTitle}</h2>
+                 <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap', background: '#f3e5f5', padding: '15px', borderRadius: '8px' }}>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                       <strong>{t.categoryStr}</strong>
+                       <select value={transferCategory} onChange={e => setTransferCategory(e.target.value)} style={{width: '120px', margin: 0}}>
+                          {availableCategories.length === 0 && <option value="">N/A</option>}
+                          {availableCategories.map(cat => (
+                             <option key={cat} value={cat}>{cat} ({categoryCounts[cat]})</option>
+                          ))}
+                       </select>
+                    </div>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                       <strong>{t.qtyStr}</strong>
+                       <input type="number" min="1" value={transferQty} onChange={e => setTransferQty(e.target.value)} style={{width: '80px', margin: 0}} />
+                    </div>
+                    <button className="btn" style={{background: '#9c27b0'}} onClick={handleSmartSelectForTurnover}>{t.btnSmartSelect}</button>
+                 </div>
+              </div>
+
               {inboundTransferSelected.length > 0 && (
                 <div className="card" style={{ border: '2px solid #ff9800' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
@@ -1307,7 +1435,6 @@
                     <h2 style={{marginTop: 0, color: '#d32f2f'}}>{t.outStep2.replace('{n}', outboundPending.length)}</h2>
                     <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                       <button className="btn btn-secondary" onClick={() => setOutboundPending([])}>{t.clearList}</button>
-                      {/* 💡 已移除「退回週轉倉」按鈕 */}
                       {outboundPending.length > 0 && <button className="btn btn-danger" onClick={handlePickAllFound}>{t.btnShipAll}</button>}
                     </div>
                   </div>
@@ -1408,4 +1535,3 @@
   </script>
 </body>
 </html>
-
